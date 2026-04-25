@@ -1,0 +1,11 @@
+node_modules
+dist
+public/icons
+linki-v*.zip
+.husky/_
+*.log
+*.tsbuildinfo
+.DS_Store
+.vscode
+.idea
+.claude
