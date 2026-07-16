@@ -19,7 +19,7 @@ export function dedupe(urls: readonly string[]): string[] {
     const key = canonical(url);
     if (seen.has(key)) continue;
     seen.add(key);
-    out.push(url);
+    out.push(key);
   }
   return out;
 }

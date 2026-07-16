@@ -28,7 +28,11 @@ export default function App() {
   return (
     <main className="w-[360px] bg-bg-base font-sans">
       <Header />
-      <TabCountLine matched={matched.length} total={tabs.length} />
+      <TabCountLine
+        matched={matched.length}
+        total={tabs.length}
+        filtering={query.trim() !== ""}
+      />
       <FilterInput value={query} onChange={setQuery} />
       <UniqueToggle checked={unique} onChange={setUnique} />
       <ActionButtons urls={workingUrls} ids={workingIds} />
