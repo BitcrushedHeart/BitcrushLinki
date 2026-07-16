@@ -19,12 +19,14 @@ The filter defines the **working set**. Every action operates on that set.
 
 This applies to all four action buttons. Tabs outside the working set are never touched.
 
+The working set is always scoped to the current window, and only ever considers unpinned `http(s)` tabs — pinned tabs are deliberately excluded (bulk-close never touches them), and non-http(s) pages (`chrome://`, extension pages, etc.) are excluded entirely.
+
 ## UI Flow
 
 1. User clicks the Linki icon in the browser toolbar.
 2. Popup opens with the following components, top to bottom:
    - **Header**: "Linki" left-aligned, "A Bitcrush Tool" as a much smaller subtitle far-right.
-   - **Tab count**: "xx Open Tabs" — reflects the current working set (e.g. "22 of 30 tabs match" when a filter is active).
+   - **Tab count**: "xx Open Tabs" when no filter is active, "X of Y tabs match" whenever a filter is active — even if all tabs match (e.g. "22 of 30 tabs match").
    - **Filter bar**: text input.
    - **Unique Links Only** checkbox, default ON.
    - **Action buttons**:
@@ -35,9 +37,9 @@ This applies to all four action buttons. Tabs outside the working set are never 
 
 ## Behaviour
 
-**Filter matching**: case-insensitive substring match against tab **hostname only**. "pinterest" matches `pinterest.com`, `uk.pinterest.com`, `pinterest.co.uk`. It does not match against URL paths or query strings.
+**Filter matching**: case-insensitive substring match against tab **hostname + path** (query strings are excluded). "pinterest" matches `pinterest.com`, `uk.pinterest.com`, `pinterest.co.uk`. Because the path is included, "reddit.com/r/pics" matches tabs open on that subreddit.
 
-**Unique Links Only**: when checked, URLs in the working set are normalised by stripping common tracking parameters before deduplication. Strip list:
+**Unique Links Only**: when checked, URLs in the working set are normalised by stripping common tracking parameters before deduplication, and the copied/exported output contains these normalised URLs, not the tabs' original URLs. Strip list:
 
 - `utm_*` (any param starting with `utm_`)
 - `fbclid`
@@ -47,11 +49,11 @@ This applies to all four action buttons. Tabs outside the working set are never 
 
 When unchecked, every tab's URL is included as-is, no deduplication.
 
-**Copy**: writes the working set to the clipboard. Plain text, newline-separated.
+**Copy**: writes the working set to the clipboard. Plain text, newline-separated. If the clipboard write fails, the Copy button shows an error state.
 
-**Export**: downloads the working set as a `.txt` file. Plain text, newline-separated. Filename pattern: `linki-export-YYYY-MM-DD.txt`.
+**Export**: downloads the working set as a `.txt` file. Plain text, newline-separated. Filename pattern: `linki-export-YYYY-MM-DD.txt`, where the date is the user's local date.
 
-**Copy & Close** / **Export & Close**: performs the copy or export action, then closes every tab in the working set.
+**Copy & Close** / **Export & Close**: performs the copy or export action, then closes every tab in the working set, then dismisses the popup. Export & Close waits briefly after starting the download before closing tabs, so the download isn't lost when the tabs (and possibly the window) close. If the clipboard write fails, Copy & Close shows an error state and does not close any tabs.
 
 ## Design
 
