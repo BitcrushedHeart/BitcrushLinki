@@ -11,18 +11,37 @@ export function useTabs(): LinkTab[] {
 
   useEffect(() => {
     let cancelled = false;
-    chrome.tabs
-      .query({ currentWindow: true, pinned: false })
-      .then((all) => {
-        if (cancelled) return;
-        setTabs(all.filter(isLinkTab));
-      })
-      .catch(() => {
-        if (cancelled) return;
-        setTabs([]);
-      });
+    let generation = 0;
+
+    const refresh = () => {
+      const gen = ++generation;
+      chrome.tabs
+        .query({ currentWindow: true, pinned: false })
+        .then((all) => {
+          // Ignore stale queries so overlapping refreshes can't apply out of order
+          if (cancelled || gen !== generation) return;
+          setTabs(all.filter(isLinkTab));
+        })
+        .catch(() => {
+          if (cancelled || gen !== generation) return;
+          setTabs([]);
+        });
+    };
+
+    const onEvent = () => {
+      refresh();
+    };
+
+    refresh();
+    chrome.tabs.onRemoved.addListener(onEvent);
+    chrome.tabs.onCreated.addListener(onEvent);
+    chrome.tabs.onUpdated.addListener(onEvent);
+
     return () => {
       cancelled = true;
+      chrome.tabs.onRemoved.removeListener(onEvent);
+      chrome.tabs.onCreated.removeListener(onEvent);
+      chrome.tabs.onUpdated.removeListener(onEvent);
     };
   }, []);
 
