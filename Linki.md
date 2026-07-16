@@ -81,6 +81,6 @@ No network access. No telemetry. No data leaves the browser.
 7. Pre-commit hook (Husky + lint-staged): TypeScript compile, ESLint, and no `console.*` calls. Commit blocked on any failure.
 8. Commit after each task.
 
-## Open Questions
+## Distribution
 
-- **Install target**: Chrome Web Store, or sideloaded as part of the Bitcrush Suite? Determines whether listing copy, screenshots, and a privacy policy need to be in scope before v1.
+- **Install target**: Chrome Web Store (decided 2026-07-16). Listing copy, permission justifications, and the privacy policy live in `store/`. The privacy policy must be hosted at a public URL before submission; screenshots are taken manually per the checklist in `store/listing.md`.
