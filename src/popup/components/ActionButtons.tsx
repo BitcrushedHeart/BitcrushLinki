@@ -5,12 +5,13 @@ import { closeTabs, copy, delay, exportFile } from "../lib/actions";
 interface Props {
   urls: readonly string[];
   ids: readonly number[];
+  filePrefix?: string;
 }
 
 type ActionKey = "copy" | "export" | "copyClose" | "exportClose";
 type Flash = { key: ActionKey; error: boolean } | null;
 
-export function ActionButtons({ urls, ids }: Props) {
+export function ActionButtons({ urls, ids, filePrefix = "export" }: Props) {
   const [flash, setFlash] = useState<Flash>(null);
   const disabled = urls.length === 0;
 
@@ -36,7 +37,7 @@ export function ActionButtons({ urls, ids }: Props) {
   };
 
   const onExport = () => {
-    exportFile(urls);
+    exportFile(urls, filePrefix);
     showFlash("export", false);
   };
 
@@ -52,7 +53,7 @@ export function ActionButtons({ urls, ids }: Props) {
   };
 
   const onExportClose = async () => {
-    exportFile(urls);
+    exportFile(urls, filePrefix);
     // Give the browser time to register the download before closing tabs,
     // which may close the window and tear down this popup document.
     await delay(200);

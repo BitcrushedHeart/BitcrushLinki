@@ -21,5 +21,6 @@ export default defineManifest({
       48: "icons/icon-48.png",
     },
   },
-  permissions: ["tabs"],
+  permissions: ["tabs", "activeTab", "scripting"],
+  optional_host_permissions: ["http://*/*", "https://*/*"],
 });

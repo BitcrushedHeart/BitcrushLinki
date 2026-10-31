@@ -13,7 +13,7 @@
 <h1 align="center">Bitcrush Linki</h1>
 
 <p align="center">
-  Bitcrush Linki is a Chromium extension for bulk-copying links from your open tabs. Free and open source.
+  Bitcrush Linki is a Chromium extension for bulk-copying links, and the images on those pages, from your open tabs. Free and open source.
 </p>
 
 ## What it does
@@ -21,6 +21,8 @@
 You have 30 tabs open and 22 of them are from the same site. You want to save those links somewhere and close the tabs, without doing it one at a time. Linki filters your open tabs by hostname, then copies, exports, or closes the matching set in a single click.
 
 The filter defines the working set. Every action operates on that set, and tabs outside it are never touched. An empty filter means the working set is every open tab.
+
+Images mode does the same for pictures: scan the working set, get one clean list of direct image URLs at the best resolution Linki can find, with the icons, SVGs and thumbnails filtered out. It works on pages that don't let you right-click and save, like Instagram, because it reads the image URLs out of the page rather than the picture you see.
 
 ## Features
 
@@ -31,11 +33,22 @@ The filter defines the working set. Every action operates on that set, and tabs 
 - **Export.** Downloads the working set as a `.txt` file, named `linki-export-YYYY-MM-DD.txt`.
 - **Copy and Close / Export and Close.** Runs the copy or export, then closes every tab in the working set.
 
+### Images mode
+
+- **Finds images however they're embedded.** `<img>` tags and every `srcset`/`<picture>` variant, lazy-load `data-*` attributes, CSS background images, Open Graph metadata, links that point straight at an image, and image URLs buried in the page's inline JavaScript and JSON (which is where Instagram keeps them).
+- **Picks the highest resolution.** Variants of the same picture are grouped, and Linki tries known higher-resolution forms of the URL: Instagram, Twitter/X, Pinterest, Reddit, Tumblr, Flickr, Imgur, Discord, Wikipedia, YouTube thumbnails, Shopify, WordPress, Cloudinary, Squarespace, Google user content, plus generic `?w=600`, `-300x200.jpg`, `/thumbs/` patterns. Every candidate is checked against the real site before it's used, so you only ever get URLs that actually load.
+- **Boundaries.** Minimum width and height (default 400 × 400, set either to 0 to disable), skip SVG (on by default), skip GIF. Filters apply live to the last scan, no rescan needed.
+- **Honest about what it couldn't verify.** The result line says how many images were skipped and why: below the minimum, SVG, GIF, or a size it couldn't confirm.
+- **Same four actions.** Copy, Export (as `linki-images-YYYY-MM-DD.txt`), Copy & Close, Export & Close, all operating on the scanned image URLs and the working set's tabs.
+
 ## Privacy
 
-Linki asks for the minimum surface it needs. It uses only the `tabs` permission to read tab URLs and titles and to close tabs. It requests no host permissions and injects no scripts.
+Linki asks for the minimum surface it needs, and asks for more only when you use the feature that needs it.
 
-No network access. No telemetry. No data leaves your browser.
+- **Links mode** uses only the `tabs` permission to read tab URLs and to close tabs. Nothing is injected into any page.
+- **Images mode** has to read the pages themselves. It uses `activeTab` and `scripting` to run its collector in the tab you're on, and asks for access to the other sites in your working set at the moment you scan them. Those grants are per site, happen only after you click Scan, and can be revoked at any time from `chrome://extensions`.
+
+Linki has no servers and no telemetry, and stores nothing. The only network activity it ever performs is during an image scan, when it loads candidate image URLs from the sites you are scanning to confirm they exist and read their dimensions. Those requests go only to the image hosts the page itself uses, look exactly like the page loading the picture, and stop as soon as the file header has been read. Nothing about you or your tabs is sent anywhere.
 
 ## Installation
 

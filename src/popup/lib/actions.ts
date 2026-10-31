@@ -9,13 +9,13 @@ function localDateStamp(d: Date): string {
   return `${year}-${month}-${day}`;
 }
 
-export function exportFile(urls: readonly string[]): void {
+export function exportFile(urls: readonly string[], prefix = "export"): void {
   const blob = new Blob([urls.join("\n")], { type: "text/plain;charset=utf-8" });
   const objectUrl = URL.createObjectURL(blob);
   const date = localDateStamp(new Date());
   const a = document.createElement("a");
   a.href = objectUrl;
-  a.download = `linki-export-${date}.txt`;
+  a.download = `linki-${prefix}-${date}.txt`;
   document.body.appendChild(a);
   a.click();
   a.remove();
