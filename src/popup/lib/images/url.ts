@@ -60,6 +60,36 @@ function unique(list: readonly string[]): string[] {
   return [...new Set(list)];
 }
 
+// Interface chrome rather than content: sprites, favicons, emoji, spinners,
+// spacer pixels. Never worth probing, let alone collecting.
+const UI_ASSET_PATH =
+  /(^|\/)(rsrc\.php\/|favicon|apple-touch-icon|emojis?\/|sprites?[\/._-]|icons?\/|badges?\/|spinner|loading[._-]|spacer|blank[._-]|pixel[._-]|1x1[._-]|transparent[._-])/i;
+
+export function isUiAsset(href: string): boolean {
+  try {
+    const u = new URL(href);
+    const path = u.pathname.replace(/:[a-z]+$/i, "");
+    if (splitExt(splitPath(path).name).ext.toLowerCase() === ".ico") return true;
+    return UI_ASSET_PATH.test(path);
+  } catch {
+    return false;
+  }
+}
+
+// Groups hosts by their registrable domain so sharded CDN hostnames
+// (scontent-lhr8-1.cdninstagram.com, scontent-ams4-1.cdninstagram.com) are
+// treated as one place when learning which hosts reject guessed URLs.
+export function hostKey(href: string): string {
+  try {
+    const labels = new URL(href).hostname.toLowerCase().split(".");
+    if (labels.length <= 2) return labels.join(".");
+    const sld = labels[labels.length - 2] ?? "";
+    return labels.slice(sld.length <= 3 ? -3 : -2).join(".");
+  } catch {
+    return "";
+  }
+}
+
 export function kindOf(href: string): ImageKind {
   try {
     const u = new URL(href);

@@ -45,7 +45,13 @@ export default function App() {
     [scan, settings],
   );
   const imageUrls = useMemo(() => outcome?.kept.map((i) => i.url) ?? [], [outcome]);
-  const stale = scan.status === "done" && !sameIds(scan.scannedIds, workingIds);
+  // Pictures under the scan-time minimum were dropped before probing, so
+  // lowering it afterwards needs a rescan; raising it is just a live filter.
+  let stale: string | null = null;
+  if (scan.status === "done") {
+    if (!sameIds(scan.scannedIds, workingIds)) stale = "Tabs changed since scan: rescan";
+    else if (settings.minSize < scan.minSize) stale = "Min size lowered since scan: rescan";
+  }
 
   const images = mode === "images";
 
@@ -68,7 +74,7 @@ export default function App() {
             stale={stale}
             outcome={outcome}
             filters={settings}
-            onScan={() => { startScan(matched, { upgrade: settings.upgrade }); }}
+            onScan={() => { startScan(matched, { upgrade: settings.upgrade, minSize: settings.minSize }); }}
           />
         </>
       ) : (

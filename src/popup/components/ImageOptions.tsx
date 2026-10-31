@@ -11,12 +11,14 @@ export function ImageOptions({ value, onChange }: Props) {
   };
   return (
     <div className="mx-4 mt-3 flex flex-col gap-2 font-sans text-xs text-text-secondary">
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2" title={sizeHelp(value.minSize)}>
         <span>Min size</span>
-        <SizeInput label="Minimum width in pixels" value={value.minWidth} onChange={(minWidth) => { set({ minWidth }); }} />
-        <span className="text-text-muted">×</span>
-        <SizeInput label="Minimum height in pixels" value={value.minHeight} onChange={(minHeight) => { set({ minHeight }); }} />
-        <span className="text-text-muted">px</span>
+        <SizeInput
+          label="Minimum size: square root of width times height, in pixels"
+          value={value.minSize}
+          onChange={(minSize) => { set({ minSize }); }}
+        />
+        <span className="text-text-muted">px²</span>
       </div>
       <div className="flex flex-wrap gap-x-4 gap-y-1">
         <Check label="Skip SVG" checked={value.skipSvg} onChange={(skipSvg) => { set({ skipSvg }); }} />
@@ -25,6 +27,14 @@ export function ImageOptions({ value, onChange }: Props) {
       </div>
     </div>
   );
+}
+
+// Area-based so a 1200×300 banner and a 600×600 square are judged alike:
+// datasets are sized in square pixels, not by one side.
+function sizeHelp(minSize: number): string {
+  return minSize > 0
+    ? `Keeps images whose area is at least ${String(minSize)} × ${String(minSize)} px, any aspect ratio. 0 disables.`
+    : "No minimum: every image is kept except tracking pixels.";
 }
 
 interface SizeInputProps {

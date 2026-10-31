@@ -6,7 +6,8 @@ import type { FilterOutcome } from "../lib/images/types";
 interface Props {
   state: ScanState;
   tabCount: number;
-  stale: boolean;
+  // Why the last scan no longer matches the current settings or tabs, if it doesn't.
+  stale: string | null;
   outcome: FilterOutcome | null;
   filters: ImageFilters;
   onScan: () => void;
@@ -52,7 +53,7 @@ export function ScanPanel({ state, tabCount, stale, outcome, filters, onScan }: 
 
 interface StatusProps {
   state: ScanState;
-  stale: boolean;
+  stale: string | null;
   outcome: FilterOutcome | null;
   filters: ImageFilters;
 }
@@ -63,15 +64,16 @@ function Status({ state, stale, outcome, filters }: StatusProps) {
   }
   if (state.status !== "done" || !outcome) return null;
 
-  const { tabs } = state.report;
+  const { tabs, pruned } = state.report;
   const skipped: string[] = [];
-  if (outcome.belowMin > 0) {
-    const min =
-      filters.minWidth > 0 || filters.minHeight > 0
-        ? `under ${String(filters.minWidth)}×${String(filters.minHeight)}`
-        : "tracking pixels";
-    skipped.push(`${String(outcome.belowMin)} ${min}`);
+  // Pictures the page itself declared too small were dropped at scan time;
+  // they belong in the same bucket as the ones the live filter drops.
+  const small = outcome.belowMin + pruned.small;
+  if (small > 0) {
+    const min = filters.minSize > 0 ? `under ${String(filters.minSize)} px²` : "tracking pixels";
+    skipped.push(`${String(small)} ${min}`);
   }
+  if (pruned.assets > 0) skipped.push(`${String(pruned.assets)} icons`);
   if (outcome.svg > 0) skipped.push(`${String(outcome.svg)} SVG`);
   if (outcome.gif > 0) skipped.push(`${String(outcome.gif)} GIF`);
   if (outcome.unverified > 0) skipped.push(`${String(outcome.unverified)} unverified size`);
@@ -80,7 +82,7 @@ function Status({ state, stale, outcome, filters }: StatusProps) {
   if (tabs.denied > 0) warnings.push(`${plural(tabs.denied, "tab")} blocked: site access needed`);
   if (tabs.failed > 0) warnings.push(`${plural(tabs.failed, "tab")} couldn't be scanned`);
   if (tabs.unloaded > 0) warnings.push(`${plural(tabs.unloaded, "unloaded tab")} skipped: open and rescan`);
-  if (stale) warnings.push("Tabs changed since scan: rescan");
+  if (stale !== null) warnings.push(stale);
 
   return (
     <div className="flex flex-col gap-0.5 pt-2 font-mono text-xs">

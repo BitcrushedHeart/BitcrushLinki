@@ -64,18 +64,20 @@ export function probeImageGroups(groups: ProbeGroup[], budgetMs: number): Promis
   const runGroup = async (group: ProbeGroup): Promise<ProbeResult> => {
     let best: (Size & { url: string }) | null = null;
     let tries = 0;
+    const attempts: ProbeResult["attempts"] = [];
     for (const c of group.candidates) {
       if (tries >= MAX_TRIES || Date.now() >= deadline) break;
       if (best && (c.guess || c.expected === null || c.expected <= best.width)) continue;
       tries++;
       const size = await measure(c.url);
+      attempts.push({ url: c.url, ok: size !== null });
       if (size && (!best || size.width * size.height > best.width * best.height)) {
         best = { url: c.url, ...size };
       }
     }
     return best
-      ? { id: group.id, url: best.url, width: best.width, height: best.height }
-      : { id: group.id, url: null, width: 0, height: 0 };
+      ? { id: group.id, url: best.url, width: best.width, height: best.height, attempts }
+      : { id: group.id, url: null, width: 0, height: 0, attempts };
   };
 
   const queue = [...groups];

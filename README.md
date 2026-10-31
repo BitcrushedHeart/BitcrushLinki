@@ -37,7 +37,8 @@ Images mode does the same for pictures: scan the working set, get one clean list
 
 - **Finds images however they're embedded.** `<img>` tags and every `srcset`/`<picture>` variant, lazy-load `data-*` attributes, CSS background images, Open Graph metadata, links that point straight at an image, and image URLs buried in the page's inline JavaScript and JSON (which is where Instagram keeps them).
 - **Picks the highest resolution.** Variants of the same picture are grouped, and Linki tries known higher-resolution forms of the URL: Instagram, Twitter/X, Pinterest, Reddit, Tumblr, Flickr, Imgur, Discord, Wikipedia, YouTube thumbnails, Shopify, WordPress, Cloudinary, Squarespace, Google user content, plus generic `?w=600`, `-300x200.jpg`, `/thumbs/` patterns. Every candidate is checked against the real site before it's used, so you only ever get URLs that actually load.
-- **Boundaries.** Minimum width and height (default 400 × 400, set either to 0 to disable), skip SVG (on by default), skip GIF. Filters apply live to the last scan, no rescan needed.
+- **Boundaries.** A minimum size in square pixels (default 512: an image passes when √(width × height) ≥ 512, whatever its aspect ratio; set to 0 to disable), skip SVG (on by default), skip GIF. Filters apply live to the last scan; only lowering the minimum needs a rescan.
+- **Doesn't waste time on junk.** Avatars, thumbnails, icons and sprites the page already shows to be too small are dropped before Linki checks any sizes, each picture is checked once across all your tabs, and once a CDN has refused a few higher-res guesses Linki stops guessing there.
 - **Honest about what it couldn't verify.** The result line says how many images were skipped and why: below the minimum, SVG, GIF, or a size it couldn't confirm.
 - **Same four actions.** Copy, Export (as `linki-images-YYYY-MM-DD.txt`), Copy & Close, Export & Close, all operating on the scanned image URLs and the working set's tabs.
 

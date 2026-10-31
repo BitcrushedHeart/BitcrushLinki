@@ -6,7 +6,10 @@ export interface RawImage {
   url: string;
   width: number | null;
   height: number | null;
+  // Width the page claims for this URL (srcset descriptor, JSON payload), and
+  // the matching height when the page gave one too.
   declared: number | null;
+  declaredH: number | null;
   element: number;
 }
 
@@ -26,6 +29,9 @@ export interface ProbeResult {
   url: string | null;
   width: number;
   height: number;
+  // Every candidate actually loaded, so the caller can learn which hosts
+  // reject guessed URLs and stop guessing there.
+  attempts: { url: string; ok: boolean }[];
 }
 
 export interface FoundImage {
@@ -38,6 +44,9 @@ export interface FoundImage {
 
 export interface ScanOptions {
   upgrade: boolean;
+  // Same value as ImageFilters.minSize: lets the planner skip probing
+  // pictures the page already says are too small.
+  minSize: number;
 }
 
 export interface ScanProgress {
@@ -51,11 +60,14 @@ export type TabState = "scanned" | "denied" | "failed" | "unloaded";
 export interface ScanReport {
   images: FoundImage[];
   tabs: Record<TabState, number>;
+  // Dropped before probing: pictures known to be under the minimum, and UI assets.
+  pruned: { small: number; assets: number };
 }
 
 export interface ImageFilters {
-  minWidth: number;
-  minHeight: number;
+  // Minimum size in "square pixels": keep when sqrt(width * height) >= minSize,
+  // whatever the aspect ratio. 0 disables the gate.
+  minSize: number;
   skipSvg: boolean;
   skipGif: boolean;
 }

@@ -35,9 +35,9 @@ The working set is always scoped to the current window, and only ever considers 
    - **Filter bar**: text input. Shared by both modes; it always defines the working set.
    - **Links mode only**: **Unique Links Only** checkbox, default ON.
    - **Images mode only**:
-     - **Options row**: "Min size [400] × [400] px", then checkboxes "Skip SVG" (ON), "Skip GIF" (OFF), "Try higher-res URLs" (ON).
+     - **Options row**: "Min size [512] px²", then checkboxes "Skip SVG" (ON), "Skip GIF" (OFF), "Try higher-res URLs" (ON). The minimum is a single number in square pixels: an image passes when √(width × height) ≥ N, whatever its aspect ratio, because datasets are sized that way. 0 disables it.
      - **Scan button**: full-width, emphasised. "Scan N tabs for images" → "Scanning tab 3 of 22…" → "Checking sizes 48 of 180…" → "Rescan N tabs".
-     - **Result lines** (mono): "143 images · 22 tabs scanned", then "Skipped: 37 under 400×400 · 12 SVG · 3 unverified size", then any warnings in amber (tabs blocked, tabs unloaded, tabs changed since scan).
+     - **Result lines** (mono): "143 images · 22 tabs scanned", then "Skipped: 2,437 under 512 px² · 180 icons · 12 SVG · 3 unverified size", then any warnings in amber (tabs blocked, tabs unloaded, tabs changed since scan, min size lowered since scan).
    - **Action buttons** (both modes):
      - Copy
      - Export
@@ -79,11 +79,24 @@ When unchecked, every tab's URL is included as-is, no deduplication.
 
 **Grouping** (`resolve.ts`): URLs that came from the same element, or that share a key once size tokens are stripped (`url.ts`), are one picture. Each group ends up as a single URL in the output.
 
+**Pruning before probing** (`resolve.ts`): probing is the slow part of a scan, and a page like an Instagram post carries hundreds of pictures that are never wanted (commenter avatars, suggested posts, UI sprites). So before anything is probed:
+
+- **The page's own sizes are trusted.** A variant whose width and height the page declared (Instagram's `image_versions2` triples, srcset descriptors with a measured `<img>`) counts as known, exactly like a measured `<img>`. The biggest known variant is the group's answer unless something of unknown size could beat it.
+- **Known-small pictures are dropped.** With a minimum set, a group whose every variant is known or hinted to be under it is skipped and counted under "under N px²". A width-only hint can't bound the area, so a picture is only written off when even a 3:1 portrait at that width would fall short. A group with a higher-res guess still gets that guess probed, unless its best known width is under 160 px — avatars, icons and emoji are never worth upgrading.
+- **UI assets are dropped.** Favicons, `.ico`, sprites, emoji, spinners, spacer pixels and Facebook/Instagram `rsrc.php` static files, counted as "icons".
+- **Each picture is probed once.** A picture that appears in several tabs (the logged-in user's avatar, a shared header image) is probed in the first tab only; the others reuse the result.
+- **Probing is capped at 150 pictures per tab**, biggest hints first and unknown-size pictures ahead of everything (they are usually the main content). Pictures past the cap are settled from what the page declared.
+- **Dead hosts stop being guessed.** Once six higher-res guesses against one host (by registrable domain, so sharded CDN hostnames count together) have all failed, no more guesses go to that host for the rest of the scan. Signed CDN URLs like Instagram's never accept an edited size, and this learns that within the first batch instead of paying for it on every picture.
+
+Because known-small pictures are dropped at scan time, lowering Min size afterwards shows an amber "Min size lowered since scan: rescan"; raising it is just the live filter.
+
 **Resolution** (`url.ts` + `probe.ts`): for each group Linki builds a candidate list — up to three higher-res URL guesses (site-specific rules first: Instagram, Twitter/X, Pinterest, Shopify, Flickr, Imgur, Wikimedia, Tumblr, Reddit, Discord, Google user content/Blogger, YouTube, Cloudinary, Squarespace, Bandcamp; then generic `-300x200`/`_600x600` suffixes, `-thumb`/`_small` words, `/thumbs/`, `/150x150/` segments, `?w=&h=&q=` params), then variants the page itself declared as full-size, then unknown-size variants, then declared variants larger than anything already measured. Candidates are probed **in the page's own context** as an `<img>` load, so cookies and referer match the page, and the download is aborted the moment the header yields a size. First candidate that loads wins unless a later one is declared larger than what loaded. Signed CDN URLs (Instagram's `oh=` signature) simply fail the probe and fall back to the largest variant the page provided, which is the correct answer for them. "Try higher-res URLs" OFF skips the guesses; Linki still measures and picks the largest variant the page offers.
 
-**Filters** (`filter.ts`) are applied live to the last scan, so changing Min size or the Skip toggles never triggers a rescan. Rules: SVG/GIF skipped per toggle; with a minimum set, images whose size couldn't be verified are excluded and counted as "unverified"; with no minimum, everything is kept except 1×1 tracking pixels. Output is deduplicated by final URL across tabs, in working-set then document order.
+**Filters** (`filter.ts`) are applied live to the last scan, so changing Min size or the Skip toggles never triggers a rescan (except lowering Min size, above). Rules: SVG/GIF skipped per toggle; with a minimum set, an image is kept when width × height ≥ N², and images whose size couldn't be verified are excluded and counted as "unverified"; with no minimum, everything is kept except 1×1 tracking pixels. Output is deduplicated by final URL across tabs, in working-set then document order.
 
 **Tabs that can't be scanned**: discarded/unloaded tabs are skipped (scripting would reload them); tabs whose origin was declined, the Chrome Web Store and other unscriptable pages are reported as blocked; anything else that throws is "couldn't be scanned". Scan results go **stale** (amber warning, results kept) when the working set's tab ids change under them.
+
+**Stale extension load**: Chrome re-reads an unpacked extension's popup files from disk on every open but only re-reads the manifest on load/reload, so after an update that adds the `scripting` permission the new popup can run against the old manifest with `chrome.scripting` absent. Scan checks for the API before doing anything and, if it is missing, shows "Linki was updated but the browser hasn't reloaded it. Reload Linki in chrome://extensions and try again." instead of reporting every tab as unscannable.
 
 **Export** filename in Images mode: `linki-images-YYYY-MM-DD.txt`.
 

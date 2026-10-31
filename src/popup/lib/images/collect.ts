@@ -47,31 +47,38 @@ export function collectPageImages(): RawImage[] {
     width: number | null,
     height: number | null,
     declared: number | null,
+    declaredH: number | null = null,
   ): void => {
     if (href === null) return;
     const k = `${String(element)}|${href}`;
     const prev = seen.get(k);
     if (prev) {
-      if (declared !== null) prev.declared = Math.max(prev.declared ?? 0, declared);
+      if (declared !== null && declared >= (prev.declared ?? 0)) {
+        prev.declared = declared;
+        if (declaredH !== null) prev.declaredH = declaredH;
+      }
       if (prev.width === null && width !== null) {
         prev.width = width;
         prev.height = height;
       }
       return;
     }
-    const entry: RawImage = { url: href, width, height, declared, element };
+    const entry: RawImage = { url: href, width, height, declared, declaredH, element };
     seen.set(k, entry);
     out.push(entry);
   };
 
-  const pushLoose = (href: string | null, declared: number | null): void => {
+  const pushLoose = (href: string | null, declared: number | null, declaredH: number | null = null): void => {
     if (href === null) return;
     const prev = loose.get(href);
     if (prev) {
-      if (prev.declared === null && declared !== null) prev.declared = declared;
+      if (declared !== null && declared >= (prev.declared ?? 0)) {
+        prev.declared = declared;
+        if (declaredH !== null) prev.declaredH = declaredH;
+      }
       return;
     }
-    const entry: RawImage = { url: href, width: null, height: null, declared, element: -1 };
+    const entry: RawImage = { url: href, width: null, height: null, declared, declaredH, element: -1 };
     loose.set(href, entry);
     out.push(entry);
   };
@@ -282,15 +289,15 @@ export function collectPageImages(): RawImage[] {
     for (const n of Array.from(document.querySelectorAll("noscript, template"))) add(n.innerHTML);
 
     const structured = [
-      /"width"\s*:\s*(\d+)\s*,\s*"height"\s*:\s*\d+\s*,\s*"url"\s*:\s*"((?:[^"\\]|\\.)*)"/g,
+      /"width"\s*:\s*(\d+)\s*,\s*"height"\s*:\s*(\d+)\s*,\s*"url"\s*:\s*"((?:[^"\\]|\\.)*)"/g,
       /"url"\s*:\s*"((?:[^"\\]|\\.)*)"\s*,\s*"width"\s*:\s*(\d+)/g,
       /"src"\s*:\s*"((?:[^"\\]|\\.)*)"\s*,\s*"config_width"\s*:\s*(\d+)/g,
     ];
     let found = 0;
     for (const text of chunks) {
       for (const m of text.matchAll(structured[0] ?? /$^/g)) {
-        const href = absolute(unescape(m[2] ?? ""));
-        if (href !== null && looksLikeImage(href)) pushLoose(href, Number(m[1]));
+        const href = absolute(unescape(m[3] ?? ""));
+        if (href !== null && looksLikeImage(href)) pushLoose(href, Number(m[1]), Number(m[2]));
       }
       for (const re of [structured[1], structured[2]]) {
         if (!re) continue;
